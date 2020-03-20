@@ -512,6 +512,10 @@ export const EXPECTED_TRANSFORMS = {
 		originalBlock: 'Table',
 		availableTransforms: [ 'Group' ],
 	},
+	'core__table-of-contents': {
+		originalBlock: 'Table of Contents',
+		availableTransforms: [ 'Group', 'List' ],
+	},
 	'core__tag-cloud': {
 		originalBlock: 'Tag Cloud',
 		availableTransforms: [ 'Group' ],
