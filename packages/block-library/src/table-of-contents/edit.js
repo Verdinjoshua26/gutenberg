@@ -12,7 +12,7 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import ListItem from './ListItem';
+import ListItem from './list-item';
 import {
 	convertBlocksToTableOfContents,
 	linearToNestedHeadingList,

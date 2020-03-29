@@ -14,7 +14,7 @@ import { create } from '@wordpress/rich-text';
 export function linearToNestedHeadingList( headingsList, index = 0 ) {
 	const nestedHeadingsList = [];
 
-	headingsList.forEach( function( heading, key ) {
+	headingsList.forEach( ( heading, key ) => {
 		if ( heading.content === undefined ) {
 			return;
 		}
@@ -69,7 +69,7 @@ export function linearToNestedHeadingList( headingsList, index = 0 ) {
  * @return {Array} The list of heading parameters.
  */
 export function convertBlocksToTableOfContents( headingBlocks ) {
-	return headingBlocks.map( function( heading ) {
+	return headingBlocks.map( ( heading ) => {
 		// This is a string so that it can be stored/sourced as an attribute in the table of contents
 		// block using a data attribute.
 		const level = heading.attributes.level.toString();
@@ -82,7 +82,7 @@ export function convertBlocksToTableOfContents( headingBlocks ) {
 			? create( { html: headingContent } ).text
 			: '';
 
-		const anchor = anchorContent ? '#' + anchorContent : '';
+		const anchor = anchorContent ? `#${ anchorContent }` : '';
 
 		return { content, anchor, level };
 	} );
