@@ -1,7 +1,6 @@
 /**
  * WordPress dependencies
  */
-import { select } from '@wordpress/data';
 import { create } from '@wordpress/rich-text';
 
 /**
@@ -61,27 +60,6 @@ export function linearToNestedHeadingList( headingsList, index = 0 ) {
 	} );
 
 	return nestedHeadingsList;
-}
-
-/**
- * Gets a list of heading texts, anchors and levels in the current document.
- *
- * @return {Array} The list of headings.
- */
-export function getHeadingsList() {
-	return convertBlocksToTableOfContents( getHeadingBlocks() );
-}
-
-/**
- * Gets a list of heading blocks in the current document.
- *
- * @return {Array} The list of heading blocks.
- */
-export function getHeadingBlocks() {
-	const editor = select( 'core/block-editor' );
-	return editor
-		.getBlocks()
-		.filter( ( block ) => block.name === 'core/heading' );
 }
 
 /**
