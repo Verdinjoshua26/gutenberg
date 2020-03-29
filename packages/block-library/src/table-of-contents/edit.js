@@ -7,6 +7,7 @@ const { isEqual } = require( 'lodash' );
  * WordPress dependencies
  */
 import { useSelect } from '@wordpress/data';
+import { useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -25,17 +26,19 @@ export default function TableOfContentsEdit( {
 } ) {
 	const { headings = [] } = attributes;
 
-	useSelect( ( select ) => {
-		const headingBlocks = select( 'core/block-editor' )
+	const headingBlocks = useSelect( ( select ) => {
+		return select( 'core/block-editor' )
 			.getBlocks()
 			.filter( ( block ) => block.name === 'core/heading' );
+	}, [] );
 
+	useEffect( () => {
 		const latestHeadings = convertBlocksToTableOfContents( headingBlocks );
 
 		if ( ! isEqual( headings, latestHeadings ) ) {
 			setAttributes( { headings: latestHeadings } );
 		}
-	} );
+	}, [ headingBlocks ] );
 
 	if ( headings.length === 0 ) {
 		return (
