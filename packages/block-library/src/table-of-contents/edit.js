@@ -7,7 +7,7 @@ const { isEqual } = require( 'lodash' );
  * WordPress dependencies
  */
 import { useSelect } from '@wordpress/data';
-import { useEffect } from '@wordpress/element';
+import { useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -19,12 +19,9 @@ import {
 	linearToNestedHeadingList,
 } from './utils';
 
-export default function TableOfContentsEdit( {
-	attributes,
-	className,
-	setAttributes,
-} ) {
-	const { headings = [] } = attributes;
+export default function TableOfContentsEdit( { className } ) {
+	// Local state; not saved to block attributes. The saved block is dynamic and uses PHP to generate its content.
+	const [ headings, setHeadings ] = useState( [] );
 
 	const headingBlocks = useSelect( ( select ) => {
 		return select( 'core/block-editor' )
@@ -36,7 +33,7 @@ export default function TableOfContentsEdit( {
 		const latestHeadings = convertBlocksToTableOfContents( headingBlocks );
 
 		if ( ! isEqual( headings, latestHeadings ) ) {
-			setAttributes( { headings: latestHeadings } );
+			setHeadings( latestHeadings );
 		}
 	}, [ headingBlocks ] );
 

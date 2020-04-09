@@ -2,16 +2,8 @@
 	"name": "core/table-of-contents",
 	"category": "common",
 	"attributes": {
-		"headings": {
-			"type": "array",
-			"source": "query",
-			"selector": ".wp-block-table-of-contents__entry",
-			"default": [],
-			"query": {
-				"content": { "source": "text" },
-				"anchor": { "source": "attribute", "attribute": "href" },
-				"level": { "source": "attribute", "attribute": "data-level" }
-			}
+		"className": {
+			"type": "string"
 		}
 	}
 }

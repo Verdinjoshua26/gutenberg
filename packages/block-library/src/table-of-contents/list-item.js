@@ -1,21 +1,17 @@
 export default function ListItem( { children, noWrapList = false } ) {
 	if ( children ) {
 		const childNodes = children.map( ( childNode, index ) => {
-			const { content, anchor, level } = childNode.block;
+			const { content, anchor } = childNode.block;
 
 			const entry = anchor ? (
 				<a
 					className="wp-block-table-of-contents__entry"
 					href={ anchor }
-					data-level={ level }
 				>
 					{ content }
 				</a>
 			) : (
-				<span
-					className="wp-block-table-of-contents__entry"
-					data-level={ level }
-				>
+				<span className="wp-block-table-of-contents__entry">
 					{ content }
 				</span>
 			);

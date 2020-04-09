@@ -52,20 +52,21 @@ function gutenberg_reregister_core_block_types() {
 	);
 
 	$block_names = array(
-		'archives.php'        => 'core/archives',
-		'block.php'           => 'core/block',
-		'calendar.php'        => 'core/calendar',
-		'categories.php'      => 'core/categories',
-		'cover.php'           => 'core/cover',
-		'latest-comments.php' => 'core/latest-comments',
-		'latest-posts.php'    => 'core/latest-posts',
-		'legacy-widget.php'   => 'core/legacy-widget',
-		'navigation.php'      => 'core/navigation',
-		'rss.php'             => 'core/rss',
-		'search.php'          => 'core/search',
-		'shortcode.php'       => 'core/shortcode',
-		'social-link.php'     => 'core/social-link',
-		'tag-cloud.php'       => 'core/tag-cloud',
+		'archives.php'          => 'core/archives',
+		'block.php'             => 'core/block',
+		'calendar.php'          => 'core/calendar',
+		'categories.php'        => 'core/categories',
+		'cover.php'             => 'core/cover',
+		'latest-comments.php'   => 'core/latest-comments',
+		'latest-posts.php'      => 'core/latest-posts',
+		'legacy-widget.php'     => 'core/legacy-widget',
+		'navigation.php'        => 'core/navigation',
+		'rss.php'               => 'core/rss',
+		'search.php'            => 'core/search',
+		'shortcode.php'         => 'core/shortcode',
+		'social-link.php'       => 'core/social-link',
+		'table-of-contents.php' => 'core/table-of-contents',
+		'tag-cloud.php'         => 'core/tag-cloud',
 	);
 
 	if ( gutenberg_is_experiment_enabled( 'gutenberg-full-site-editing' ) ) {
