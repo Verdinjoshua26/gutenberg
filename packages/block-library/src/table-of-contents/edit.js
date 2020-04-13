@@ -13,11 +13,8 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import ListItem from './list-item';
-import {
-	convertBlocksToTableOfContents,
-	linearToNestedHeadingList,
-} from './utils';
+import List from './list';
+import { convertBlocksToHeadingList, linearToNestedHeadingList } from './utils';
 
 export default function TableOfContentsEdit( { className } ) {
 	// Local state; not saved to block attributes. The saved block is dynamic and uses PHP to generate its content.
@@ -30,7 +27,7 @@ export default function TableOfContentsEdit( { className } ) {
 	}, [] );
 
 	useEffect( () => {
-		const latestHeadings = convertBlocksToTableOfContents( headingBlocks );
+		const latestHeadings = convertBlocksToHeadingList( headingBlocks );
 
 		if ( ! isEqual( headings, latestHeadings ) ) {
 			setHeadings( latestHeadings );
@@ -49,7 +46,7 @@ export default function TableOfContentsEdit( { className } ) {
 
 	return (
 		<div className={ className }>
-			<ListItem>{ linearToNestedHeadingList( headings ) }</ListItem>
+			<List>{ linearToNestedHeadingList( headings ) }</List>
 		</div>
 	);
 }

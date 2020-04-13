@@ -1,26 +1,23 @@
-export default function ListItem( { children, noWrapList = false } ) {
+export default function List( { children, noWrapList = false } ) {
 	if ( children ) {
 		const childNodes = children.map( ( childNode, index ) => {
-			const { content, anchor } = childNode.block;
+			const { anchor, content } = childNode.block;
+
+			const itemClassName = 'wp-block-table-of-contents__entry';
 
 			const entry = anchor ? (
-				<a
-					className="wp-block-table-of-contents__entry"
-					href={ anchor }
-				>
+				<a className={ itemClassName } href={ `#${ anchor }` }>
 					{ content }
 				</a>
 			) : (
-				<span className="wp-block-table-of-contents__entry">
-					{ content }
-				</span>
+				<span className={ itemClassName }>{ content }</span>
 			);
 
 			return (
 				<li key={ index }>
 					{ entry }
 					{ childNode.children ? (
-						<ListItem>{ childNode.children }</ListItem>
+						<List>{ childNode.children }</List>
 					) : null }
 				</li>
 			);

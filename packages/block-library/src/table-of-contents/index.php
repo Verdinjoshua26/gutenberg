@@ -15,18 +15,24 @@ function block_core_table_of_contents_get_heading_blocks() {
 
 	$blocks = parse_blocks( $post->post_content );
 
-	$heading_blocks = array_filter(
-		$blocks,
-		function ( $block ) {
-			return 'core/heading' === $block['blockName'];
-		}
+	// array_filter preserves the original indices, so to allow
+	// block_core_table_of_contents_linear_to_nested_heading_list expects
+	// sequential indices (e.g. [ 0 => x, 1 => y ]). However, array_filter
+	// preserves the indices of the filtered array, which can result in things like [ 1 => x, 6 => y ], so we have to reset the indices using array_values.
+	$heading_blocks = array_values(
+		array_filter(
+			$blocks,
+			function ( $block ) {
+				return 'core/heading' === $block['blockName'];
+			}
+		)
 	);
 
 	return $heading_blocks;
 }
 
 /**
- * Extracts text, anchor and level from a list of heading blocks.
+ * Extracts text, anchor, and level from a list of heading blocks.
  *
  * @param array $heading_blocks List of Heading blocks.
  *
@@ -35,20 +41,19 @@ function block_core_table_of_contents_get_heading_blocks() {
 function block_core_table_of_contents_blocks_to_heading_list( $heading_blocks ) {
 	return array_map(
 		function ( $heading ) {
-			$level           = $heading['attrs']['level'];
-			$heading_content = $heading['attrs']['content'];
-			$anchor_content  = $heading['attrs']['anchor'];
+			$attributes = $heading['attrs'];
+			$anchor     = $attributes['anchor'];
+			$content    = $attributes['content'];
+			$level      = $attributes['level'];
 
-			// Strip html from heading to use as the table of contents entry.
-			$content = $heading_content
-				? wp_strip_all_tags( $heading_content, true )
+			// Strip HTML from heading to use as the table of contents entry.
+			$content = $content
+				? wp_strip_all_tags( $content, true )
 				: '';
 
-			$anchor = $anchor_content ? '#' . $anchor_content : '';
-
 			return array(
-				'content' => $content,
 				'anchor'  => $anchor,
+				'content' => $content,
 				'level'   => $level,
 			);
 		},
@@ -73,7 +78,7 @@ function block_core_table_of_contents_linear_to_nested_heading_list(
 
 	foreach ( $heading_list as $key => $heading ) {
 		if ( ! isset( $heading['content'] ) ) {
-			return;
+			break;
 		}
 
 		// Make sure we are only working with the same level as the first
@@ -101,30 +106,25 @@ function block_core_table_of_contents_linear_to_nested_heading_list(
 
 				// We found a child node: Push a new node onto the return array
 				// with children.
-				araray_push(
-					$nested_heading_list,
-					array(
-						'block'    => $heading,
-						'index'    => $index + $key,
-						'children' => block_core_table_of_contents_linear_to_nested_heading_list(
-							array_slice(
-								$heading_list,
-								$key + 1,
-								$end_of_slice - ( $key + 1 )
-							),
-							$index + $key + 1
+				$nested_heading_list[] = array(
+					'block'    => $heading,
+					'index'    => $index + $key,
+					'children' => block_core_table_of_contents_linear_to_nested_heading_list(
+						array_slice(
+							$heading_list,
+							$key + 1,
+							$end_of_slice - ( $key + 1 )
 						),
+						$index + $key + 1
+					),
 					)
 				);
 			} else {
 				// No child node: Push a new node onto the return array.
-				array_push(
-					$nested_heading_list,
-					array(
-						'block'    => $heading,
-						'index'    => $index + $key,
-						'children' => null,
-					)
+				$nested_heading_list[] = array(
+					'block'    => $heading,
+					'index'    => $index + $key,
+					'children' => null,
 				);
 			}
 		}
@@ -146,16 +146,22 @@ function block_core_table_of_contents_render_list( $nested_heading_list ) {
 			$anchor  = $child_node['block']['anchor'];
 			$content = $child_node['block']['content'];
 
-			$entry = $anchor
-				? sprintf(
-					'<a class="wp-block-table-of-contents__entry" href="%1$s">%2$s</a>',
+			$item_class = 'wp-block-table-of-contents__entry';
+
+			if ( isset( $anchor ) ) {
+				$entry = sprintf(
+					'<a class="%1$s" href="#%2$s">%3$s</a>',
+					$item_class,
 					esc_attr( $anchor ),
 					esc_html( $content )
-				)
-				: sprintf(
-					'<span class="wp-block-table-of-contents__entry">%1$s</span>',
+				);
+			} else {
+				$entry = sprintf(
+					'<span class="%1$s">%2$s</span>',
+					$item_class,
 					esc_html( $content )
 				);
+			}
 
 			return sprintf(
 				'<li>%1$s%2$s</li>',
@@ -165,8 +171,7 @@ function block_core_table_of_contents_render_list( $nested_heading_list ) {
 					: null
 			);
 		},
-		$nested_heading_list,
-		array_keys( $nested_heading_list )
+		$nested_heading_list
 	);
 
 	return '<ul>' . implode( $child_nodes ) . '</ul>';
