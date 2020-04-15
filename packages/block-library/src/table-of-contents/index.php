@@ -31,6 +31,13 @@ function block_core_table_of_contents_get_heading_blocks() {
 	return $heading_blocks;
 }
 
+// The default heading level of the Heading block.
+// Do not use this outside of this file! This will likely be removed later.
+$_block_core_table_of_contents_default_heading_level = json_decode(
+	file_get_contents( __DIR__ . '/heading/block.json' ),
+	true
+)['attributes']['level']['default'];
+
 /**
  * Extracts text, anchor, and level from a list of heading blocks.
  *
@@ -41,15 +48,32 @@ function block_core_table_of_contents_get_heading_blocks() {
 function block_core_table_of_contents_blocks_to_heading_list( $heading_blocks ) {
 	return array_map(
 		function ( $heading ) {
-			$attributes = $heading['attrs'];
-			$anchor     = $attributes['anchor'];
-			$content    = $attributes['content'];
-			$level      = $attributes['level'];
+			global $_block_core_table_of_contents_default_heading_level;
 
-			// Strip HTML from heading to use as the table of contents entry.
-			$content = $content
-				? wp_strip_all_tags( $content, true )
-				: '';
+			if ( isset( $heading['attrs']['anchor'] ) ) {
+				$anchor = $heading['attrs']['anchor'];
+			} else {
+				$anchor = null;
+			}
+
+			if ( isset( $heading['innerHTML'] ) ) {
+				// Strip HTML from heading to use as the table of contents entry.
+				$content = wp_strip_all_tags( $heading['innerHTML'], true );
+			} else {
+				$content = '';
+			}
+
+			// Apply default heading level if no heading level is set. There
+			// is currently a bug where attributes set to the same value as the
+			// default are not saved. In this case, the level attribute of the
+			// Heading block is affected, so we have to apply the default value
+			// to get the level value for all headings that would otherwise have
+			// a heading level of 2.
+			if ( isset( $heading['attrs']['level'] ) ) {
+				$level = $heading['attrs']['level'];
+			} else {
+				$level = $_block_core_table_of_contents_default_heading_level;
+			}
 
 			return array(
 				'anchor'  => $anchor,
@@ -117,7 +141,6 @@ function block_core_table_of_contents_linear_to_nested_heading_list(
 						),
 						$index + $key + 1
 					),
-					)
 				);
 			} else {
 				// No child node: Push a new node onto the return array.
