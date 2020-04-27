@@ -1,29 +1,34 @@
-export default function List( { children, noWrapList = false } ) {
-	if ( children ) {
-		const childNodes = children.map( ( childNode, index ) => {
-			const { anchor, content } = childNode.block;
+const ENTRY_CLASS_NAME = 'wp-block-table-of-contents__entry';
 
-			const itemClassName = 'wp-block-table-of-contents__entry';
+export default function TableOfContentsList( {
+	nestedHeadingList,
+	wrapList = true,
+} ) {
+	if ( nestedHeadingList ) {
+		const childNodes = nestedHeadingList.map( ( childNode, index ) => {
+			const { anchor, content } = childNode.heading;
 
 			const entry = anchor ? (
-				<a className={ itemClassName } href={ `#${ anchor }` }>
+				<a className={ ENTRY_CLASS_NAME } href={ `#${ anchor }` }>
 					{ content }
 				</a>
 			) : (
-				<span className={ itemClassName }>{ content }</span>
+				<span className={ ENTRY_CLASS_NAME }>{ content }</span>
 			);
 
 			return (
 				<li key={ index }>
 					{ entry }
 					{ childNode.children ? (
-						<List>{ childNode.children }</List>
+						<TableOfContentsList
+							nestedHeadingList={ childNode.children }
+						/>
 					) : null }
 				</li>
 			);
 		} );
 
-		// Don't wrap the list elements in <ul> if converting to a core/list.
-		return noWrapList ? childNodes : <ul>{ childNodes }</ul>;
+		// Don't wrap the list elements in a <ul> if converting to a core/list.
+		return wrapList ? <ul>{ childNodes }</ul> : childNodes;
 	}
 }

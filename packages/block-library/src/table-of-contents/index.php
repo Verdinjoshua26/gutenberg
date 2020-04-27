@@ -6,88 +6,166 @@
  */
 
 /**
- * Extracts Heading (`core/heading`) blocks from the current post.
+ * Helper function to remove the children of a node.
  *
- * @return array The list of Heading blocks.
+ * @access private
+ *
+ * @param object $node The node to remove children from.
  */
-function block_core_table_of_contents_get_heading_blocks() {
-	global $post;
+function block_core_table_of_contents_delete_node_children( $node ) {
+	/* phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase */
+	// Disabled because of PHP DOMDoument and DOMXPath APIs using camelCase.
 
-	$blocks = parse_blocks( $post->post_content );
+	// Whenever the 1st child node is removed, the 2nd one becomes the 1st.
+	while ( isset( $node->firstChild ) ) {
+		block_core_table_of_contents_delete_node_children( $node->firstChild );
+		$node->removeChild( $node->firstChild );
+	}
+	/* phpcs:enable */
+}
 
-	// array_filter preserves the original indices, so to allow
-	// block_core_table_of_contents_linear_to_nested_heading_list expects
-	// sequential indices (e.g. [ 0 => x, 1 => y ]). However, array_filter
-	// preserves the indices of the filtered array, which can result in things like [ 1 => x, 6 => y ], so we have to reset the indices using array_values.
-	$heading_blocks = array_values(
-		array_filter(
-			$blocks,
-			function ( $block ) {
-				return 'core/heading' === $block['blockName'];
-			}
+/**
+ * Helper function to remove a node and all of its children.
+ *
+ * @access private
+ *
+ * @param object $node The node to remove along with its children.
+ */
+function block_core_table_of_contents_delete_node_and_children( $node ) {
+	/* phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase */
+	// Disabled because of PHP DOMDoument and DOMXPath APIs using camelCase.
+
+	block_core_table_of_contents_delete_node_children( $node );
+	$node->parentNode->removeChild( $node );
+	/* phpcs:enable */
+}
+
+/**
+ * Extracts heading content, anchor, and level from the post content.
+ *
+ * @access private
+ *
+ * @param WP_Post $post The post to extract headings from.
+ *
+ * @return array The list of headings.
+ */
+function block_core_table_of_contents_get_headings( $post ) {
+	/* phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase */
+	// Disabled because of PHP DOMDoument and DOMXPath APIs using camelCase.
+
+	// Create a document to load the post content into.
+	$doc = new DOMDocument();
+
+	// Enable user error handling for the HTML parsing. HTML5 elements aren't
+	// supported (as of PHP 7.4) and There's no way to guarantee that the markup
+	// is valid anyway, so we're just going to ignore all errors in parsing.
+	// Nested heading elements will still be parsed.
+	// The lack of HTML5 support is a libxml2 issue:
+	// https://bugzilla.gnome.org/show_bug.cgi?id=761534.
+	libxml_use_internal_errors( true );
+
+	// Parse the post content into an HTML document.
+	$doc->loadHTML(
+		// loadHTML expects ISO-8859-1, so we need to convert the post content to
+		// that format. We use htmlentities to encode Unicode characters not
+		// supported by ISO-8859-1 as HTML entities. However, this function also
+		// converts all special characters like < or > to HTML entities, so we use
+		// htmlspecialchars_decode to decode them.
+		htmlspecialchars_decode(
+			utf8_decode(
+				htmlentities(
+					'<!DOCTYPE html><html><head><title>:D</title><body>' .
+						$post->post_content .
+						'</body></html>',
+					ENT_COMPAT,
+					'UTF-8',
+					false
+				)
+			),
+			ENT_COMPAT
 		)
 	);
 
-	return $heading_blocks;
-}
+	// We're done parsing, so we can disable user error handling. This also
+	// clears any existing errors, which helps avoid a memory leak.
+	libxml_use_internal_errors( false );
 
-// The default heading level of the Heading block.
-// Do not use this outside of this file! This will likely be removed later.
-$_block_core_table_of_contents_default_heading_level = json_decode(
-	file_get_contents( __DIR__ . '/heading/block.json' ),
-	true
-)['attributes']['level']['default'];
+	$document_el = $doc->documentElement;
 
-/**
- * Extracts text, anchor, and level from a list of heading blocks.
- *
- * @param array $heading_blocks List of Heading blocks.
- *
- * @return array The list of heading parameters.
- */
-function block_core_table_of_contents_blocks_to_heading_list( $heading_blocks ) {
+	// IE11 treats template elements like divs, so to avoid extracting heading
+	// elements from them, we first have to remove the template elements and
+	// their children.
+	// We can't use foreach directly on the $templates DOMNodeList because it's a
+	// dynamic list, and removing nodes confuses the foreach iterator. So
+	// instead, we create a static array of the nodes we want to remove and then
+	// iterate over that.
+	$templates = iterator_to_array(
+		$document_el->getElementsByTagName( 'template' )
+	);
+
+	foreach ( $templates as $template ) {
+		block_core_table_of_contents_delete_node_and_children( $template );
+	}
+
+	$xpath = new DOMXPath( $doc );
+
+	// Get all heading elements in the post content.
+	$headings = iterator_to_array(
+		$xpath->query(
+			'//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6]'
+		)
+	);
+
 	return array_map(
 		function ( $heading ) {
-			global $_block_core_table_of_contents_default_heading_level;
+			$anchor = '';
 
-			if ( isset( $heading['attrs']['anchor'] ) ) {
-				$anchor = $heading['attrs']['anchor'];
-			} else {
-				$anchor = null;
+			if ( isset( $heading->attributes ) ) {
+				$id_attribute = $heading->attributes->getNamedItem( 'id' );
+
+				if ( null !== $id_attribute ) {
+					// The id attribute may contain many ids, so just use the first.
+					$anchor = explode( ' ', trim( $id_attribute->nodeValue ) )[0];
+				}
 			}
 
-			if ( isset( $heading['innerHTML'] ) ) {
-				// Strip HTML from heading to use as the table of contents entry.
-				$content = wp_strip_all_tags( $heading['innerHTML'], true );
-			} else {
-				$content = '';
-			}
-
-			// Apply default heading level if no heading level is set. There
-			// is currently a bug where attributes set to the same value as the
-			// default are not saved. In this case, the level attribute of the
-			// Heading block is affected, so we have to apply the default value
-			// to get the level value for all headings that would otherwise have
-			// a heading level of 2.
-			if ( isset( $heading['attrs']['level'] ) ) {
-				$level = $heading['attrs']['level'];
-			} else {
-				$level = $_block_core_table_of_contents_default_heading_level;
+			switch ( $heading->nodeName ) {
+				case 'h1':
+					$level = 1;
+					break;
+				case 'h2':
+					$level = 2;
+					break;
+				case 'h3':
+					$level = 3;
+					break;
+				case 'h4':
+					$level = 4;
+					break;
+				case 'h5':
+					$level = 5;
+					break;
+				case 'h6':
+					$level = 6;
+					break;
 			}
 
 			return array(
 				'anchor'  => $anchor,
-				'content' => $content,
+				'content' => $heading->textContent,
 				'level'   => $level,
 			);
 		},
-		$heading_blocks
+		$headings
 	);
+	/* phpcs:enable */
 }
 
 /**
  * Converts a flat list of heading parameters to a hierarchical nested list
  * based on each header's immediate parent's level.
+ *
+ * @access private
  *
  * @param array $heading_list Flat list of heading parameters to nest.
  * @param int   $index        The current list index.
@@ -128,10 +206,10 @@ function block_core_table_of_contents_linear_to_nested_heading_list(
 					}
 				}
 
-				// We found a child node: Push a new node onto the return array
-				// with children.
+				// Found a child node: Push a new node onto the return array with
+				// children.
 				$nested_heading_list[] = array(
-					'block'    => $heading,
+					'heading'  => $heading,
 					'index'    => $index + $key,
 					'children' => block_core_table_of_contents_linear_to_nested_heading_list(
 						array_slice(
@@ -145,7 +223,7 @@ function block_core_table_of_contents_linear_to_nested_heading_list(
 			} else {
 				// No child node: Push a new node onto the return array.
 				$nested_heading_list[] = array(
-					'block'    => $heading,
+					'heading'  => $heading,
 					'index'    => $index + $key,
 					'children' => null,
 				);
@@ -159,29 +237,31 @@ function block_core_table_of_contents_linear_to_nested_heading_list(
 /**
  * Renders the heading list of the `core/table-of-contents` block on server.
  *
+ * @access private
+ *
  * @param array $nested_heading_list Nested list of heading data.
  *
  * @return string The heading list rendered as HTML.
  */
 function block_core_table_of_contents_render_list( $nested_heading_list ) {
+	$entry_class = 'wp-block-table-of-contents__entry';
+
 	$child_nodes = array_map(
-		function ( $child_node ) {
-			$anchor  = $child_node['block']['anchor'];
-			$content = $child_node['block']['content'];
+		function ( $child_node ) use ( $entry_class ) {
+			$anchor  = $child_node['heading']['anchor'];
+			$content = $child_node['heading']['content'];
 
-			$item_class = 'wp-block-table-of-contents__entry';
-
-			if ( isset( $anchor ) ) {
+			if ( isset( $anchor ) && '' !== $anchor ) {
 				$entry = sprintf(
 					'<a class="%1$s" href="#%2$s">%3$s</a>',
-					$item_class,
+					$entry_class,
 					esc_attr( $anchor ),
 					esc_html( $content )
 				);
 			} else {
 				$entry = sprintf(
 					'<span class="%1$s">%2$s</span>',
-					$item_class,
+					$entry_class,
 					esc_html( $content )
 				);
 			}
@@ -203,11 +283,15 @@ function block_core_table_of_contents_render_list( $nested_heading_list ) {
 /**
  * Renders the `core/table-of-contents` block on server.
  *
- * @param array $attributes The block attributes.
+ * @access private
  *
- * @return string Rendered HTML of this block.
+ * @param object $attributes The block attributes.
+ *
+ * @return string Rendered block HTML.
  */
 function render_block_core_table_of_contents( $attributes ) {
+	$post = gutenberg_get_post_from_context();
+
 	// CSS class string.
 	$class = 'wp-block-table-of-contents';
 
@@ -216,15 +300,16 @@ function render_block_core_table_of_contents( $attributes ) {
 		$class .= ' ' . $attributes['className'];
 	}
 
-	$heading_blocks = block_core_table_of_contents_get_heading_blocks();
-
-	if ( count( $heading_blocks ) === 0 ) {
+	if ( ! $post ) {
 		return '';
 	}
 
-	$headings = block_core_table_of_contents_blocks_to_heading_list(
-		$heading_blocks
-	);
+	$headings = block_core_table_of_contents_get_headings( $post );
+
+	// If there are no headings or the only heading is empty.
+	if ( count( $headings ) === 0 || '' === $headings[0]['content'] ) {
+		return '';
+	}
 
 	return sprintf(
 		'<nav class="%1$s">%2$s</nav>',
@@ -237,6 +322,8 @@ function render_block_core_table_of_contents( $attributes ) {
 
 /**
  * Registers the `core/table-of-contents` block on server.
+ *
+ * @access private
  *
  * @uses render_block_core_table_of_contents()
  *

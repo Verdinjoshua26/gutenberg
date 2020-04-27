@@ -1,21 +1,83 @@
 /**
- * WordPress dependencies
+ * @typedef WPHeadingData
+ *
+ * @property {string} anchor  The anchor link to the heading, or '' if none.
+ * @property {string} content The plain text content of the heading.
+ * @property {number} level   The heading level.
  */
-import { create } from '@wordpress/rich-text';
+
+/**
+ * Extracts text, anchor, and level from a list of heading elements.
+ *
+ * @param {NodeList} headingElements The list of heading elements.
+ *
+ * @return {WPHeadingData[]} The list of heading parameters.
+ */
+export function getHeadingsFromHeadingElements( headingElements ) {
+	return [ ...headingElements ].map( ( heading ) => {
+		let anchor = '';
+
+		if ( heading.hasAttribute( 'id' ) ) {
+			// The id attribute may contain many ids, so just use the first.
+			anchor = heading
+				.getAttribute( 'id' )
+				.trim()
+				.split( ' ' )[ 0 ];
+		}
+
+		let level;
+
+		switch ( heading.tagName ) {
+			case 'H1':
+				level = 1;
+				break;
+			case 'H2':
+				level = 2;
+				break;
+			case 'H3':
+				level = 3;
+				break;
+			case 'H4':
+				level = 4;
+				break;
+			case 'H5':
+				level = 5;
+				break;
+			case 'H6':
+				level = 6;
+				break;
+		}
+
+		return { anchor, content: heading.textContent, level };
+	} );
+}
+
+/**
+ * @typedef WPNestedHeadingData
+ *
+ * @property {WPHeadingData}               heading  The heading content, anchor,
+ *                                                  and level.
+ * @property {number}                      index    The index of this heading
+ *                                                  node in the entire nested
+ *                                                  list of heading data.
+ * @property {?Array<WPNestedHeadingData>} children The sub-headings of this
+ *                                                  heading, if any.
+ */
 
 /**
  * Takes a flat list of heading parameters and nests them based on each header's
  * immediate parent's level.
  *
- * @param {Array}  headingList The flat list of headings to nest.
- * @param {number} index        The current list index.
- * @return {Array} The nested list of headings.
+ * @param {WPHeadingData[]} headingList The flat list of headings to nest.
+ * @param {number}          index       The current list index.
+ *
+ * @return {WPNestedHeadingData[]} The nested list of headings.
  */
 export function linearToNestedHeadingList( headingList, index = 0 ) {
 	const nestedHeadingList = [];
 
 	headingList.forEach( ( heading, key ) => {
-		if ( heading.content === undefined ) {
+		if ( heading.content === '' ) {
 			return;
 		}
 
@@ -41,7 +103,7 @@ export function linearToNestedHeadingList( headingList, index = 0 ) {
 
 				// We found a child node: Push a new node onto the return array with children.
 				nestedHeadingList.push( {
-					block: heading,
+					heading,
 					index: index + key,
 					children: linearToNestedHeadingList(
 						headingList.slice( key + 1, endOfSlice ),
@@ -51,7 +113,7 @@ export function linearToNestedHeadingList( headingList, index = 0 ) {
 			} else {
 				// No child node: Push a new node onto the return array.
 				nestedHeadingList.push( {
-					block: heading,
+					heading,
 					index: index + key,
 					children: null,
 				} );
@@ -60,23 +122,4 @@ export function linearToNestedHeadingList( headingList, index = 0 ) {
 	} );
 
 	return nestedHeadingList;
-}
-
-/**
- * Extracts text, anchor, and level from a list of heading blocks.
- *
- * @param {Array} headingBlocks The list of heading blocks.
- * @return {Array} The list of heading parameters.
- */
-export function convertBlocksToHeadingList( headingBlocks ) {
-	return headingBlocks.map( ( heading ) => {
-		const { anchor, content } = heading.attributes;
-
-		// Strip HTML from heading to use as the table of contents entry.
-		const plainContent = content ? create( { html: content } ).text : '';
-
-		const level = heading.attributes.level;
-
-		return { anchor, content: plainContent, level };
-	} );
 }
