@@ -19,10 +19,12 @@ export function getHeadingsFromHeadingElements( headingElements ) {
 
 		if ( heading.hasAttribute( 'id' ) ) {
 			// The id attribute may contain many ids, so just use the first.
-			anchor = heading
+			const firstId = heading
 				.getAttribute( 'id' )
 				.trim()
 				.split( ' ' )[ 0 ];
+
+			anchor = `#${ firstId }`;
 		}
 
 		let level;
@@ -50,6 +52,35 @@ export function getHeadingsFromHeadingElements( headingElements ) {
 
 		return { anchor, content: heading.textContent, level };
 	} );
+}
+
+/**
+ * Extracts heading data from the provided content.
+ *
+ * @param {string} content The content to extract heading data from.
+ *
+ * @return {WPHeadingData[]} The list of heading parameters.
+ */
+export function getHeadingsFromContent( content ) {
+	// Create a temporary container to put the post content into, so we can
+	// use the DOM to find all the headings.
+	const tempPostContentDOM = document.createElement( 'div' );
+	tempPostContentDOM.innerHTML = content;
+
+	// Remove template elements so that headings inside them aren't counted.
+	// This is only needed for IE11, which doesn't recognize the element and
+	// treats it like a div.
+	for ( const template of tempPostContentDOM.querySelectorAll(
+		'template'
+	) ) {
+		tempPostContentDOM.removeChild( template );
+	}
+
+	const headingElements = tempPostContentDOM.querySelectorAll(
+		'h1, h2, h3, h4, h5, h6'
+	);
+
+	return getHeadingsFromHeadingElements( headingElements );
 }
 
 /**

@@ -41,15 +41,22 @@ function block_core_table_of_contents_delete_node_and_children( $node ) {
 }
 
 /**
- * Extracts heading content, anchor, and level from the post content.
+ * Extracts heading content, anchor, and level from the given post content.
  *
  * @access private
  *
- * @param WP_Post $post The post to extract headings from.
+ * @param string $content       The post content to extract headings from.
+ * @param int    $headings_page The page of the post where the headings are
+ *                              located.
+ * @param int    $current_page  The page of the post currently being rendered.
  *
  * @return array The list of headings.
  */
-function block_core_table_of_contents_get_headings( $post ) {
+function block_core_table_of_contents_get_headings_from_content(
+	$content,
+	$headings_page = 1,
+	$current_page = 1
+) {
 	/* phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase */
 	// Disabled because of PHP DOMDoument and DOMXPath APIs using camelCase.
 
@@ -75,7 +82,7 @@ function block_core_table_of_contents_get_headings( $post ) {
 			utf8_decode(
 				htmlentities(
 					'<!DOCTYPE html><html><head><title>:D</title><body>' .
-						$post->post_content .
+						$content .
 						'</body></html>',
 					ENT_COMPAT,
 					'UTF-8',
@@ -117,7 +124,7 @@ function block_core_table_of_contents_get_headings( $post ) {
 	);
 
 	return array_map(
-		function ( $heading ) {
+		function ( $heading ) use ( $headings_page, $current_page ) {
 			$anchor = '';
 
 			if ( isset( $heading->attributes ) ) {
@@ -125,7 +132,17 @@ function block_core_table_of_contents_get_headings( $post ) {
 
 				if ( null !== $id_attribute ) {
 					// The id attribute may contain many ids, so just use the first.
-					$anchor = explode( ' ', trim( $id_attribute->nodeValue ) )[0];
+					$first_id = explode( ' ', trim( $id_attribute->nodeValue ) )[0];
+
+					if ( $headings_page === $current_page ) {
+						$anchor = '#' . $first_id;
+					} elseif ( 1 !== $headings_page && 1 === $current_page ) {
+						$anchor = './' . $headings_page . '/#' . $first_id;
+					} elseif ( 1 === $headings_page && 1 !== $current_page ) {
+						$anchor = '../#' . $first_id;
+					} else {
+						$anchor = '../' . $headings_page . '/#' . $first_id;
+					}
 				}
 			}
 
@@ -154,11 +171,62 @@ function block_core_table_of_contents_get_headings( $post ) {
 				'anchor'  => $anchor,
 				'content' => $heading->textContent,
 				'level'   => $level,
+				'page'    => $headings_page,
 			);
 		},
 		$headings
 	);
 	/* phpcs:enable */
+}
+
+/**
+ * Gets the content, anchor, level, and page of headings from a post. Returns
+ * data from all headings in a paginated post if $current_page_only is false;
+ * otherwise, returns only data from headings on the current page being
+ * rendered.
+ *
+ * @access private
+ *
+ * @param WP_Post $post              The post to extract headings from.
+ * @param bool    $current_page_only Whether to include headings from the
+ *                                   entire post, or just those from the
+ *                                   current page (if the post is paginated).
+ *
+ * @return array The list of headings.
+ */
+function block_core_table_of_contents_get_headings(
+	$post,
+	$current_page_only
+) {
+	global $multipage, $page, $pages;
+
+	if ( $multipage ) {
+		// Creates a list of heading lists, one list per page.
+		$pages_of_headings = array_map(
+			function( $page_content, $page_index ) use ( $page ) {
+				return block_core_table_of_contents_get_headings_from_content(
+					$page_content,
+					$page_index + 1,
+					$page
+				);
+			},
+			$pages,
+			array_keys( $pages )
+		);
+
+		if ( $current_page_only ) {
+			// Return the headings from the current page.
+			return $pages_of_headings[ $page - 1 ];
+		} else {
+			// Concatenate the heading lists into a single array and return it.
+			return array_merge( ...$pages_of_headings );
+		}
+	} else {
+		// Only one page, so return headings from entire post_content.
+		return block_core_table_of_contents_get_headings_from_content(
+			$post->post_content
+		);
+	}
 }
 
 /**
@@ -253,7 +321,7 @@ function block_core_table_of_contents_render_list( $nested_heading_list ) {
 
 			if ( isset( $anchor ) && '' !== $anchor ) {
 				$entry = sprintf(
-					'<a class="%1$s" href="#%2$s">%3$s</a>',
+					'<a class="%1$s" href="%2$s">%3$s</a>',
 					$entry_class,
 					esc_attr( $anchor ),
 					esc_html( $content )
@@ -304,7 +372,10 @@ function render_block_core_table_of_contents( $attributes ) {
 		return '';
 	}
 
-	$headings = block_core_table_of_contents_get_headings( $post );
+	$headings = block_core_table_of_contents_get_headings(
+		$post,
+		$attributes['onlyIncludeCurrentPage']
+	);
 
 	// If there are no headings or the only heading is empty.
 	if ( count( $headings ) === 0 || '' === $headings[0]['content'] ) {

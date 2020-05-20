@@ -9,7 +9,7 @@ export default function TableOfContentsList( {
 			const { anchor, content } = childNode.heading;
 
 			const entry = anchor ? (
-				<a className={ ENTRY_CLASS_NAME } href={ `#${ anchor }` }>
+				<a className={ ENTRY_CLASS_NAME } href={ anchor }>
 					{ content }
 				</a>
 			) : (
