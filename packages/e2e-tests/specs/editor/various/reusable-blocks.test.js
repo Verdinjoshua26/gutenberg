@@ -3,11 +3,13 @@
  */
 import {
 	insertBlock,
+	insertReusableBlock,
 	createNewPost,
 	clickBlockToolbarButton,
 	pressKeyWithModifier,
-	searchForBlock,
+	searchForReusableBlock,
 	getEditedPostContent,
+	showBlockToolbar,
 } from '@wordpress/e2e-test-utils';
 
 function waitForAndAcceptDialog() {
@@ -35,6 +37,7 @@ describe( 'Reusable blocks', () => {
 		await insertBlock( 'Paragraph' );
 		await page.keyboard.type( 'Hello there!' );
 
+		await showBlockToolbar();
 		await clickBlockToolbarButton( 'More options' );
 
 		const convertButton = await page.waitForXPath(
@@ -79,6 +82,7 @@ describe( 'Reusable blocks', () => {
 		await insertBlock( 'Paragraph' );
 		await page.keyboard.type( 'Hello there!' );
 
+		await showBlockToolbar();
 		await clickBlockToolbarButton( 'More options' );
 
 		const convertButton = await page.waitForXPath(
@@ -114,7 +118,7 @@ describe( 'Reusable blocks', () => {
 
 	it( 'can be inserted and edited', async () => {
 		// Insert the reusable block we created above
-		await insertBlock( 'Greeting block' );
+		await insertReusableBlock( 'Greeting block' );
 
 		// Put the reusable block in edit mode
 		const editButton = await page.waitForXPath(
@@ -170,6 +174,7 @@ describe( 'Reusable blocks', () => {
 		await insertBlock( 'Paragraph' );
 		await page.keyboard.type( 'Awesome Paragraph' );
 
+		await showBlockToolbar();
 		await clickBlockToolbarButton( 'More options' );
 
 		const convertButton = await page.waitForXPath(
@@ -198,7 +203,7 @@ describe( 'Reusable blocks', () => {
 
 		// Step 3. Insert the block created in Step 1.
 
-		await insertBlock( 'Awesome block' );
+		await insertReusableBlock( 'Awesome block' );
 
 		// Check that we have a reusable block on the page
 		const block = await page.$(
@@ -216,7 +221,7 @@ describe( 'Reusable blocks', () => {
 
 	it( 'can be converted to a regular block', async () => {
 		// Insert the reusable block we edited above
-		await insertBlock( 'Surprised greeting block' );
+		await insertReusableBlock( 'Surprised greeting block' );
 
 		// Convert block to a regular block
 		await clickBlockToolbarButton( 'More options' );
@@ -241,7 +246,7 @@ describe( 'Reusable blocks', () => {
 
 	it( 'can be deleted', async () => {
 		// Insert the reusable block we edited above
-		await insertBlock( 'Surprised greeting block' );
+		await insertReusableBlock( 'Surprised greeting block' );
 
 		// Delete the block and accept the confirmation dialog
 		await clickBlockToolbarButton( 'More options' );
@@ -259,7 +264,7 @@ describe( 'Reusable blocks', () => {
 		expect( await getEditedPostContent() ).toBe( '' );
 
 		// Search for the block in the inserter
-		await searchForBlock( 'Surprised greeting block' );
+		await searchForReusableBlock( 'Surprised greeting block' );
 
 		// Check that we couldn't find it
 		const items = await page.$$(
@@ -322,7 +327,7 @@ describe( 'Reusable blocks', () => {
 
 	it( 'multi-selection reusable block can be converted back to regular blocks', async () => {
 		// Insert the reusable block we edited above
-		await insertBlock( 'Multi-selection reusable block' );
+		await insertReusableBlock( 'Multi-selection reusable block' );
 
 		// Convert block to a regular block
 		await clickBlockToolbarButton( 'More options' );
