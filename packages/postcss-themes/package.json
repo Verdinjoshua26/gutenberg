@@ -31,7 +31,7 @@
 	],
 	"main": "index.js",
 	"dependencies": {
-		"postcss": "^7.0.32"
+		"postcss": "^8.2.10"
 	},
 	"publishConfig": {
 		"access": "public"
