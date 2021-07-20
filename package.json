@@ -180,7 +180,7 @@
 		"puppeteer": "npm:puppeteer-core@3.0.0",
 		"react": "16.9.0",
 		"react-dom": "16.9.0",
-		"react-native": "0.61.5",
+		"react-native": "0.62.3",
 		"react-test-renderer": "16.9.0",
 		"rimraf": "3.0.2",
 		"rtlcss": "2.4.0",
