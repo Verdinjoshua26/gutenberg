@@ -43,7 +43,7 @@
 		"ora": "^4.0.2",
 		"rimraf": "^3.0.2",
 		"terminal-link": "^2.0.0",
-		"yargs": "^14.0.0"
+		"yargs": "^15.0.1"
 	},
 	"publishConfig": {
 		"access": "public"
