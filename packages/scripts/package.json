@@ -65,7 +65,7 @@
 		"read-pkg-up": "^1.0.1",
 		"resolve-bin": "^0.4.0",
 		"sass-loader": "^8.0.2",
-		"source-map-loader": "^0.2.4",
+		"source-map-loader": "^1.0.0",
 		"stylelint": "^13.6.0",
 		"stylelint-config-wordpress": "^17.0.0",
 		"thread-loader": "^2.1.3",
