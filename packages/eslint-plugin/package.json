@@ -30,7 +30,7 @@
 		"@wordpress/prettier-config": "file:../prettier-config",
 		"babel-eslint": "^10.1.0",
 		"eslint-config-prettier": "^6.10.1",
-		"eslint-plugin-jest": "^23.8.2",
+		"eslint-plugin-jest": "^24.0.0",
 		"eslint-plugin-jsdoc": "^26.0.0",
 		"eslint-plugin-jsx-a11y": "^6.2.3",
 		"eslint-plugin-prettier": "^3.1.2",
