@@ -51,7 +51,7 @@
 		"eslint": "^7.1.0",
 		"eslint-plugin-markdown": "^1.0.2",
 		"ignore-emit-webpack-plugin": "^2.0.2",
-		"jest": "^25.3.0",
+		"jest": "^28.0.0",
 		"jest-puppeteer": "^4.4.0",
 		"markdownlint": "^0.18.0",
 		"markdownlint-cli": "^0.21.0",
