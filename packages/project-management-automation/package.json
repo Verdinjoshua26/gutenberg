@@ -23,7 +23,7 @@
 	"types": "build-types",
 	"dependencies": {
 		"@actions/core": "^1.0.0",
-		"@actions/github": "^1.0.0",
+		"@actions/github": "^3.0.0",
 		"@babel/runtime": "^7.9.2"
 	},
 	"publishConfig": {
